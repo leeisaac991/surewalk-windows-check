@@ -27,3 +27,14 @@ It installs nothing, changes no settings, and sends no texts. The phone test ask
 | 7 | **C# compiler** (`csc.exe`, part of .NET Framework) | Bridge option B: builds a small program in your own folder and runs the same phone test (skipped if step 5 already passed) |
 
 The end of the log has a **SUMMARY** saying for each part whether it can run on this laptop, is blocked, or wasn't tested yet: the texting server, the iPhone bridge, start at login, GroupMe access, and calling.
+
+## Excel link probe (can the Excel panel skip GroupMe?)
+
+This checks whether the Excel texts panel can talk straight to a server on this laptop. If it can, GroupMe isn't needed for syncing. It changes nothing in the workbook or the texting setup.
+
+1. Double-click **`PROBE-EXCEL-LINK.cmd`** and leave its window open. It runs a small test server that only this laptop can reach (`127.0.0.1:8788`).
+2. Open [`excel-link/SURE-Walk-link-test.yaml`](excel-link/SURE-Walk-link-test.yaml), click **Raw**, and copy all of it.
+3. In Excel on this laptop, open **Script Lab ▸ Import**, paste the text, and import it. Then open **SURE Walk link test** and click **Run all tests**.
+   - If the browser asks to let the site access devices on your local network, click **Allow**.
+   - If a small "SURE Walk link test window" opens, leave it open until the tests finish.
+4. The results show in the panel and are saved to `excel-link-log.txt` next to `PROBE-EXCEL-LINK.cmd`.

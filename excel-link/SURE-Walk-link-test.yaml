@@ -1,0 +1,73 @@
+name: SURE Walk link test
+description: Checks whether this Excel panel can talk to a server on this laptop (run PROBE-EXCEL-LINK.cmd first). Changes nothing in the workbook.
+host: EXCEL
+api_set: {}
+script:
+  content: |
+    // @ts-nocheck
+    const S = 'http://127.0.0.1:8788';
+    const out = [];
+    const say = t => { out.push(t); document.getElementById('log').textContent = out.join('\n'); };
+    const withTimeout = (p, ms) => Promise.race([p, new Promise((_, r) => setTimeout(() => r(new Error('no answer in ' + ms / 1000 + ' s')), ms))]);
+    async function tryFetch(name, url, opts) {
+      try {
+        const r = await withTimeout(fetch(url, opts), 8000);
+        const t = await r.text();
+        say((r.ok && t === 'pong' ? 'PASS ' : 'FAIL ') + name + ' -> HTTP ' + r.status + ' ' + t.slice(0, 40));
+        return r.ok && t === 'pong';
+      } catch (e) { say('FAIL ' + name + ' -> ' + e.message); return false; }
+    }
+    document.getElementById('run').onclick = async () => {
+      out.length = 0;
+      // the popup must open right inside the click, before any waiting
+      let win = null;
+      try { win = window.open(S + '/relay', 'swlink', 'width=460,height=300'); } catch (e) { say('FAIL popup window -> ' + e.message); }
+      say('panel origin: ' + location.origin);
+      try { say('page chain: ' + Array.from(location.ancestorOrigins || []).join(' < ')); } catch (e) {}
+      say('browser: ' + navigator.userAgent);
+      try { say('Office: ' + Office.context.diagnostics.platform + ' ' + Office.context.diagnostics.version); } catch (e) {}
+      say('');
+      const direct = await tryFetch('1 plain request', S + '/ping?t=plain');
+      await tryFetch('2 request with a key header', S + '/ping?t=header', { headers: { 'X-Access-Token': 'probe' } });
+      await tryFetch('3 POST with JSON', S + '/ping?t=post', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      await tryFetch('4 localhost name', 'http://localhost:8788/ping?t=localhost');
+      let relay = false;
+      if (!win) say('FAIL 5 helper window -> the browser blocked the popup');
+      else {
+        relay = await new Promise(res => {
+          const id = Math.random().toString(36).slice(2);
+          const done = ok => { removeEventListener('message', on); clearInterval(tick); res(ok); };
+          const on = e => { if (e.data && e.data.sw === 'probe-reply' && e.data.id === id) { say('PASS 5 helper window -> ' + e.data.text); done(true); } };
+          addEventListener('message', on);
+          let n = 0;
+          const tick = setInterval(() => {
+            try { win.postMessage({ sw: 'probe', id }, S); } catch (e) {}
+            if (++n > 20) { say('FAIL 5 helper window -> opened, but no answer (window link blocked?)' + (win.closed ? ' (window closed)' : '')); done(false); }
+          }, 500);
+        });
+      }
+      say('');
+      say(direct ? 'RESULT: direct link works' : relay ? 'RESULT: works through the helper window' : 'RESULT: blocked both ways');
+      const text = out.join('\n');
+      let sent = false;
+      if (direct) { try { await fetch(S + '/result', { method: 'POST', body: text }); sent = true; } catch (e) {} }
+      if (!sent && relay) { try { win.postMessage({ sw: 'result', text }, S); sent = true; } catch (e) {} }
+      say(sent ? '(results saved to excel-link-log.txt on the laptop)' : '(could not save the results - copy this text instead)');
+    };
+  language: typescript
+template:
+  content: |
+    <div style="font:14px Segoe UI,system-ui,sans-serif;padding:16px">
+      <h3 style="margin:0 0 8px">SURE Walk link test</h3>
+      <p style="margin:0 0 12px;color:#555">Start PROBE-EXCEL-LINK.cmd on this laptop first. If the browser asks to let this site access devices on your local network, click <b>Allow</b>.</p>
+      <button id="run" style="font-size:15px;padding:8px 16px">Run all tests</button>
+      <pre id="log" style="white-space:pre-wrap;font-size:12px;margin-top:12px"></pre>
+    </div>
+  language: html
+style:
+  content: |
+    body { margin: 0; }
+  language: css
+libraries: |
+  https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+  @types/office-js
