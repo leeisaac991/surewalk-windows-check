@@ -42,7 +42,7 @@ if (wmi) {
     info('paired Bluetooth devices: ' + (names.length ? names.join(', ') : 'none'));
     var phone = false;
     for (var i = 0; i < names.length; i++) if (/iphone/i.test(names[i])) phone = true;
-    res('js-phone-paired', phone ? 'PASS' : 'WARN', phone ? 'an iPhone is paired' : 'no device named iPhone is paired');
+    res('js-phone-paired', phone ? 'PASS' : 'INFO', phone ? 'an iPhone is paired' : 'no device NAMED iPhone (a phone with another name may still be paired - see the PowerShell section)');
     res('js-phone-map-listed', mas ? 'PASS' : 'WARN', mas ? 'Windows has seen a phone offer the message service' : 'Windows has not seen a message service yet (normal until the phone has connected once)');
   } catch (e) { res('js-phone-paired', 'WARN', e.message); }
 
@@ -69,7 +69,7 @@ var appid = reg('HKLM\\SYSTEM\\CurrentControlSet\\Services\\AppIDSvc\\Start');
 if (appid !== null) info('AppLocker service start type: ' + appid + ' (2 = automatic, i.e. AppLocker likely active)');
 
 try {
-  var x = new ActiveXObject('MSXML2.XMLHTTP.6.0');   // uses the Windows / browser proxy settings
+  var x = new ActiveXObject('MSXML2.ServerXMLHTTP.6.0');   // WinHTTP: no browser security-zone prompts
   x.open('HEAD', 'https://api.groupme.com/', false); x.send();
-  res('js-net-groupme', 'PASS', 'GroupMe reachable through the Windows proxy settings (HTTP ' + x.status + ')');
+  res('js-net-groupme', 'PASS', 'GroupMe reachable (HTTP ' + x.status + ')');
 } catch (e) { res('js-net-groupme', 'WARN', 'GroupMe not reachable: ' + e.message); }

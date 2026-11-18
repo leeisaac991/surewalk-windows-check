@@ -8,7 +8,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using System.Threading.Tasks;
+using System.Diagnostics;
+using System.Threading;
 using Windows.Foundation;
 using Windows.Devices.Bluetooth;
 using Windows.Devices.Bluetooth.Rfcomm;
@@ -40,17 +41,20 @@ class BtCheck
         while (x.InnerException != null) x = x.InnerException;
         return x.Message;
     }
-    static T Wait<T>(IAsyncOperation<T> op, int ms)
+    // Poll instead of AsTask(): AsTask lives in a library that needs the Windows SDK to compile against.
+    static void Settle(IAsyncInfo op, int ms)
     {
-        Task<T> t = op.AsTask();
-        if (!t.Wait(ms)) throw new TimeoutException("timed out after " + (ms / 1000) + " s");
-        return t.Result;
+        Stopwatch sw = Stopwatch.StartNew();
+        while (op.Status == AsyncStatus.Started)
+        {
+            if (sw.ElapsedMilliseconds > ms) { try { op.Cancel(); } catch { } throw new TimeoutException("timed out after " + (ms / 1000) + " s"); }
+            Thread.Sleep(15);
+        }
+        if (op.Status == AsyncStatus.Error) throw op.ErrorCode;
+        if (op.Status == AsyncStatus.Canceled) throw new OperationCanceledException();
     }
-    static void WaitA(IAsyncAction op, int ms)
-    {
-        Task t = op.AsTask();
-        if (!t.Wait(ms)) throw new TimeoutException("timed out after " + (ms / 1000) + " s");
-    }
+    static T Wait<T>(IAsyncOperation<T> op, int ms) { Settle(op, ms); return op.GetResults(); }
+    static void WaitA(IAsyncAction op, int ms) { Settle(op, ms); op.GetResults(); }
     static string Code(int c)
     {
         string n;

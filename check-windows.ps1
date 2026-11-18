@@ -54,7 +54,7 @@ try {
 } catch { Info ("App Control status: could not read (" + (Msg $_) + ")") }
 try {
   $srp = Get-ItemProperty 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Safer\CodeIdentifiers' -ErrorAction Stop
-  Info ("Software Restriction Policies present, DefaultLevel=" + $srp.DefaultLevel)
+  if ($null -ne $srp.DefaultLevel) { Info ("Software Restriction Policies present, DefaultLevel=" + $srp.DefaultLevel) } else { Info 'Software Restriction Policies: key present, no rules set' }
 } catch { Info 'Software Restriction Policies: none' }
 try {
   $bt = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\PolicyManager\current\device\Bluetooth' -ErrorAction Stop
@@ -219,8 +219,9 @@ foreach ($phone in $phones) {
     $script:sock = [Activator]::CreateInstance($Sock)
     AwaitAction ($script:sock.ConnectAsync($svc.ConnectionHostName, $svc.ConnectionServiceName, $Prot::BluetoothEncryptionAllowNullAuthentication)) 30000
     Res 'ps-phone-rfcomm' 'PASS' "connected to the message service on $name"
-    $script:w = $DW::new($script:sock.OutputStream)
-    $script:r = $DR::new($script:sock.InputStream)
+    # PowerShell's own overload matching cannot pass Windows stream objects to these constructors; reflection can.
+    $script:w = $DW.GetConstructor([Type[]]@((T 'Windows.Storage.Streams.IOutputStream'))).Invoke(@($script:sock.OutputStream))
+    $script:r = $DR.GetConstructor([Type[]]@((T 'Windows.Storage.Streams.IInputStream'))).Invoke(@($script:sock.InputStream))
 
     $b = New-Object System.Collections.Generic.List[byte]
     $b.AddRange([byte[]](0x10, 0x00, 0x20, 0x00)); AddBytesHdr $b 0x46 $MAS_UUID

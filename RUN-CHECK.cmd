@@ -54,7 +54,13 @@ del "%WORK%\sw-test.exe" "%WORK%\sw-test.txt" >nul 2>&1
 call "%WORK%\sw-test.cmd" >nul 2>&1 && (call :res cmd-in-user-folder PASS "batch files run from your own folders") || call :res cmd-in-user-folder FAIL "batch files blocked in your own folders"
 del "%WORK%\sw-test.cmd" >nul 2>&1
 
-dir /r "%~f0" 2>nul | find "Zone.Identifier" >nul && call :res downloaded-mark WARN "these files are marked as downloaded - right-click the zip, Properties, Unblock, then re-extract"
+rem Files from a downloaded zip carry a "came from the internet" mark; with this laptop's PowerShell policy
+rem that makes Windows stop and ask before each script, which a non-interactive check cannot answer.
+rem Clear the mark on this folder's own files (yours to do, no admin).
+dir /r "%~f0" 2>nul | find "Zone.Identifier" >nul && (
+  powershell.exe -NoProfile -NonInteractive -Command "Get-ChildItem -LiteralPath '%HERE%.' -Recurse -File | Unblock-File" >nul 2>&1
+  dir /r "%~f0" 2>nul | find "Zone.Identifier" >nul && call :res downloaded-mark WARN "files still marked as downloaded - right-click the zip, Properties, Unblock, then re-extract" || call :res downloaded-mark INFO "cleared the downloaded-file mark on this folder"
+)
 
 rem ---------------------------------------------------------------- 2. what runtimes exist
 call :section "2. Ways to run things"
@@ -131,7 +137,7 @@ if defined CSC (
   set "REFS="
   for %%f in ("%SystemRoot%\System32\WinMetadata\*.winmd") do set REFS=!REFS! /r:"%%f"
   for %%d in ("!CSC!") do set "NETDIR=%%~dpd"
-  for %%a in (System.Runtime.dll System.Runtime.WindowsRuntime.dll System.Runtime.InteropServices.WindowsRuntime.dll System.Threading.Tasks.dll) do if exist "!NETDIR!%%a" set REFS=!REFS! /r:"!NETDIR!%%a"
+  for %%a in (System.Runtime.dll System.Runtime.InteropServices.WindowsRuntime.dll) do if exist "!NETDIR!%%a" set REFS=!REFS! /r:"!NETDIR!%%a"
   "!CSC!" /nologo /optimize /out:"%WORK%\btcheck.exe" !REFS! "%HERE%btcheck.cs" >"%WORK%\csc-out.txt" 2>&1
   if exist "%WORK%\btcheck.exe" (
     call :res cs-compile PASS "the built-in C# compiler works"
