@@ -76,8 +76,14 @@ where curl >nul 2>&1 && (call :res tool-curl PASS "curl present") || call :res t
 where python >nul 2>&1 && call :res tool-python INFO "Python on PATH (another option for the bridge)"
 where py >nul 2>&1 && call :res tool-py INFO "Python launcher present (another option for the bridge)"
 
+rem Portable Node ships in this repo as the official zip; unpack it once into the work folder (built-in tar, no admin).
+for %%z in ("%HERE%node-v*-win-x64.zip") do if not exist "%WORK%\%%~nz\node.exe" (
+  echo   unpacking %%~nxz ...
+  tar -xf "%%z" -C "%WORK%" >nul 2>&1 && (call :res node-unzip PASS "unpacked %%~nxz") || call :res node-unzip FAIL "could not unpack %%~nxz - extract it by hand into a folder named node here"
+)
 set "NODE="
 if exist "%HERE%node\node.exe" set "NODE=%HERE%node\node.exe"
+if not defined NODE for /d %%d in ("%WORK%\node-v*") do if exist "%%d\node.exe" set "NODE=%%d\node.exe"
 if not defined NODE for /d %%d in ("%HERE%node-v*") do if exist "%%d\node.exe" set "NODE=%%d\node.exe"
 if not defined NODE if exist "%HERE%..\node\node.exe" set "NODE=%HERE%..\node\node.exe"
 if not defined NODE for /f "delims=" %%n in ('where node 2^>nul') do if not defined NODE set "NODE=%%n"

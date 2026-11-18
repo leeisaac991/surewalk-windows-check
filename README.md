@@ -7,7 +7,7 @@ It installs nothing, changes no settings, and sends no texts. The phone test ask
 ## Run it
 
 1. Click **Code ▸ Download ZIP**. Right-click the zip, choose **Properties**, tick **Unblock**, click OK, then extract it.
-2. *(Optional, to test the server)* Download the **Windows .zip** of Node.js LTS from nodejs.org (the zip, not the installer). Unblock it too, then extract it into a folder named `node` next to `RUN-CHECK.cmd`, so you have `node\node.exe`.
+2. Nothing else to download: the official Node.js Windows zip (LTS, from nodejs.org, MIT license) is included and gets unpacked automatically into `%LOCALAPPDATA%\surewalk-check` on the first run.
 3. Pair the iPhone in **Settings ▸ Bluetooth & devices**. On the iPhone, go to **Settings ▸ Bluetooth ▸ (i)** next to the laptop and turn on **Show Notifications**. Keep the phone unlocked and nearby.
 4. Double-click **`RUN-CHECK.cmd`**. When it finishes, `surewalk-check-log.txt` opens in Notepad.
 
@@ -20,7 +20,7 @@ It installs nothing, changes no settings, and sends no texts. The phone test ask
 | 1 | **cmd** | Admin status (just noted), whether you can write to your folders and the Startup folder, and whether programs and batch files run from your own folders |
 | 2 | **cmd** | Which ways to run things exist: PowerShell, the C# compiler, Script Host, curl, Python, Node |
 | 3 | **curl** | Whether GroupMe, jsDelivr and GitHub can be reached, and the proxy settings |
-| 4 | **portable Node** (you add it) | Everything the texting server needs: a local dashboard port, file writes, Central time, and reaching GroupMe from Node |
+| 4 | **portable Node** (included zip) | Everything the texting server needs: a local dashboard port, file writes, Central time, and reaching GroupMe from Node |
 | 5 | **PowerShell** | Bridge option A: the policies (AppLocker, App Control, restricted mode), the Bluetooth radio, the paired iPhone, and a real read-only connection to the iPhone's message service |
 | 6 | **Windows Script Host** (JScript) | A fallback for when PowerShell is restricted: the Bluetooth hardware, the paired iPhone, and whether Windows has seen its message service |
 | 7 | **C# compiler** (`csc.exe`, part of .NET Framework) | Bridge option B: builds a small program in your own folder and runs the same phone test (skipped if step 5 already passed) |
