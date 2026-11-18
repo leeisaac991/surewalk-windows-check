@@ -211,6 +211,11 @@ call :say "iPhone bridge ......... !V!"
 
 set "V=NO - would need starting by hand"
 call :has "RESULT startup-folder PASS" && set "V=YES - per-user Startup folder"
+set "V=NOT TESTED - needs the iPhone bridge check to pass first"
+call :has "RESULT ps-call-link FAIL" && set "V=BLOCKED - Windows is using the calling link itself"
+call :has "RESULT ps-call-slc FAIL" && set "V=REFUSED by the iPhone - see the FAIL line above"
+call :has "RESULT ps-call-slc PASS" && set "V=CAN DIAL - the iPhone accepts calling commands"
+call :say "Calling (dial) ........ !V!"
 call :say "Start at login ........ !V!"
 
 set "V=NOT REACHABLE - check proxy / network"

@@ -23,6 +23,7 @@ It installs nothing, changes no settings, and sends no texts. The phone test ask
 | 4 | **portable Node** (included zip) | Everything the texting server needs: a local dashboard port, file writes, Central time, and reaching GroupMe from Node |
 | 5 | **PowerShell** | Bridge option A: the policies (AppLocker, App Control, restricted mode), the Bluetooth radio, the paired iPhone, and a real read-only connection to the iPhone's message service |
 | 6 | **Windows Script Host** (JScript) | A fallback for when PowerShell is restricted: the Bluetooth hardware, the paired iPhone, and whether Windows has seen its message service |
+| 5b | **PowerShell** | Calling: sets up the iPhone's hands-free (calling) link the way a car does, then disconnects. **It never places a call.** |
 | 7 | **C# compiler** (`csc.exe`, part of .NET Framework) | Bridge option B: builds a small program in your own folder and runs the same phone test (skipped if step 5 already passed) |
 
-The end of the log has a **SUMMARY** saying for each part whether it can run on this laptop, is blocked, or wasn't tested yet: the texting server, the iPhone bridge, start at login, and GroupMe access.
+The end of the log has a **SUMMARY** saying for each part whether it can run on this laptop, is blocked, or wasn't tested yet: the texting server, the iPhone bridge, start at login, GroupMe access, and calling.

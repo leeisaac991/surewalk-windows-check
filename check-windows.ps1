@@ -269,4 +269,52 @@ foreach ($phone in $phones) {
     try { $script:sock.Dispose() } catch {}
   }
 }
+
+# ------------------------------------------------------------ calling (hands-free link), read-only: never dials
+# The bridge can dial riders the way a car does: over the iPhone's hands-free service (111f). This sets up that link
+# (features, call indicators, event reporting) and disconnects. It does NOT place a call.
+Add-Content -Path $Log -Value ''; Add-Content -Path $Log -Value '----- Calling (PowerShell, read-only) -----'
+$Opts = T 'Windows.Storage.Streams.InputStreamOptions'
+function HfpSend([string]$cmd) { $script:hw.WriteString($cmd + "`r"); $null = Await ($script:hw.StoreAsync()) ([uint32]) 10000 }
+function HfpWait([int]$ms) {
+  $buf = ''; $end = (Get-Date).AddMilliseconds($ms)
+  while ((Get-Date) -lt $end) {
+    $left = [int]($end - (Get-Date)).TotalMilliseconds; if ($left -lt 200) { $left = 200 }
+    $n = Await ($script:hr.LoadAsync(1024)) ([uint32]) $left
+    if ($n -gt 0) { $buf += $script:hr.ReadString($n) }
+    if ($buf -match '(\r\n|^)(OK|ERROR|\+CME ERROR[^\r]*)\r\n') { return $buf }
+  }
+  throw 'the phone did not answer'
+}
+$hfpOk = $false
+foreach ($phone in $phones) {
+  $name = $phone.Name
+  try {
+    $res = Await ($phone.GetRfcommServicesForIdAsync($SvcId::FromShortId(0x111F), $Cache::Uncached)) (T 'Windows.Devices.Bluetooth.Rfcomm.RfcommDeviceServicesResult') 30000
+    if (-not $res.Services -or $res.Services.Count -eq 0) { Res 'ps-call-service' 'FAIL' "$name does not offer the hands-free (calling) service right now"; continue }
+    $svc = $res.Services[0]
+    $script:hsock = [Activator]::CreateInstance($Sock)
+    try { AwaitAction ($script:hsock.ConnectAsync($svc.ConnectionHostName, $svc.ConnectionServiceName, $Prot::BluetoothEncryptionAllowNullAuthentication)) 30000 }
+    catch { Res 'ps-call-link' 'FAIL' ("could not open the calling link on $name - Windows may already be using it for its own hands-free audio (" + (Msg $_) + ")"); continue }
+    Res 'ps-call-link' 'PASS' "opened the calling link on $name"
+    $script:hw = $DW.GetConstructor([Type[]]@((T 'Windows.Storage.Streams.IOutputStream'))).Invoke(@($script:hsock.OutputStream))
+    $script:hr = $DR.GetConstructor([Type[]]@((T 'Windows.Storage.Streams.IInputStream'))).Invoke(@($script:hsock.InputStream))
+    $script:hr.InputStreamOptions = $Opts::Partial
+    $steps = @('AT+BRSF=0', 'AT+CIND=?', 'AT+CIND?', 'AT+CMER=3,0,0,1')
+    $failed = ''
+    foreach ($c in $steps) {
+      HfpSend $c
+      $ans = HfpWait 8000
+      if ($ans -notmatch '(\r\n|^)OK\r\n') { $failed = "$c -> " + (($ans -replace '\s+', ' ').Trim()); break }
+      if ($c -eq 'AT+BRSF=0' -and $ans -match '\+BRSF:\s*(\d+)') { Info ("iPhone calling features: " + $Matches[1]) }
+    }
+    if ($failed) { Res 'ps-call-slc' 'FAIL' "$name refused the calling setup ($failed)" }
+    else { Res 'ps-call-slc' 'PASS' "$name accepts calling commands from this laptop (no call was placed)"; $hfpOk = $true }
+    try { $script:hsock.Dispose() } catch {}
+    if ($hfpOk) { break }
+  } catch {
+    Res 'ps-call-slc' 'FAIL' ("$name - " + (Msg $_))
+    try { $script:hsock.Dispose() } catch {}
+  }
+}
 exit 0
